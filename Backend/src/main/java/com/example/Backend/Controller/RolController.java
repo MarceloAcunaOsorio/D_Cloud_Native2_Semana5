@@ -31,7 +31,7 @@ public class RolController {
     private RolService rolService;
 
     // Endpoint para crear un nuevo rol
-    @PostMapping
+    @PostMapping("/create_rol")
     public ResponseEntity<Rol> createRol(@RequestBody RolDTO rolDTO) {
         Rol rol = new Rol();
         rol.setName(rolDTO.getName());
@@ -40,7 +40,7 @@ public class RolController {
     }
 
     // Endpoint para obtener todos los roles del sistema
-    @GetMapping
+    @GetMapping("/mostrar_all_roles")
     public ResponseEntity<List<Rol>> getAllRoles() {
         List<Rol> roles = rolService.getAllRoles();
         return new ResponseEntity<>(roles, HttpStatus.OK);

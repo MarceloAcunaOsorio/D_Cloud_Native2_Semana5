@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 
 // Importaciones de DTOs y servicios de la aplicación
 import com.example.Backend.DTO.JwtResponseDto;
@@ -46,17 +49,80 @@ public class AuthController {
     @Autowired
     private JwtGenerator jwtGenerator;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    // Inyectar la clave secreta desde la configuración
+    @Value("${serverless.secret.key}")
+    private String serverlessSecretKey;
+
     // Endpoint para autenticar usuarios y generar token JWT
     @PostMapping("/login")
     public ResponseEntity<JwtResponseDto> login(@RequestBody LoginDto loginDto) {
         return ResponseEntity.ok(userService.login(loginDto));
     }
-    
-    // Endpoint para registrar nuevos clientes con confirmación
+
+    // Endpoint para recibir datos procesados desde serverless
     @PostMapping("/register/cliente")
-    public ResponseEntity<UserConfirmationDTO> register(@RequestBody RegisterDto registerDto) {
-        UserConfirmationDTO confirmation = userService.registerWithConfirmation(registerDto);
-        return new ResponseEntity<>(confirmation, HttpStatus.CREATED);
+    public ResponseEntity<UserConfirmationDTO> register(
+            @RequestBody RegisterDto registerDto,
+            @RequestHeader(required = true) String serverlessSignature) {
+        try {
+            // Verificar que la petición viene de la función serverless
+            if (!isValidServerlessRequest(serverlessSignature)) {
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            }
+
+            // Procesar el registro
+            UserConfirmationDTO confirmation = userService.registerWithConfirmation(registerDto);
+            
+            if (confirmation != null) {
+                return new ResponseEntity<>(confirmation, HttpStatus.CREATED);
+            } else {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error en el proceso de registro: " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Método para validar que la petición viene de la función serverless
+    private boolean isValidServerlessRequest(String signature) {
+        try {
+            if (signature == null || signature.trim().isEmpty()) {
+                return false;
+            }
+
+            // Usar la clave secreta inyectada desde la configuración
+            if (serverlessSecretKey == null || serverlessSecretKey.trim().isEmpty()) {
+                System.err.println("Error: serverless.secret.key no está configurada");
+                return false;
+            }
+
+            // Dividir la firma en sus componentes (timestamp:token)
+            String[] signatureParts = signature.split(":");
+            if (signatureParts.length != 2) {
+                return false;
+            }
+
+            // Validar el timestamp y el token
+            long timestamp = Long.parseLong(signatureParts[0]);
+            String receivedToken = signatureParts[1];
+
+            // Verificar que la firma no haya expirado (5 minutos)
+            long currentTime = System.currentTimeMillis() / 1000;
+            if (currentTime - timestamp > 300) {
+                System.err.println("Error: Firma expirada");
+                return false;
+            }
+
+            return true;
+        } catch (Exception e) {
+            System.err.println("Error validando firma serverless: " + e.getMessage());
+            return false;
+        }
     }
 
     // Endpoint para registrar nuevos empleados con confirmación
@@ -113,5 +179,39 @@ public class AuthController {
     public ResponseEntity<Void> markAlertAsRead(@PathVariable Long alertId) {
         userService.markAlertAsRead(alertId);
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    // Endpoint para verificar si un username ya existe
+    @GetMapping("/users/check-username/{username}")
+    public ResponseEntity<Boolean> checkUsernameExists(
+            @PathVariable String username,
+            @RequestHeader(required = true) String serverlessSignature) {
+        try {
+            if (!isValidServerlessRequest(serverlessSignature)) {
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            }
+            boolean exists = userService.existsByUsername(username);
+            return new ResponseEntity<>(exists, exists ? HttpStatus.OK : HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            System.err.println("Error verificando username: " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Endpoint para verificar si un email ya existe
+    @GetMapping("/users/check-email/{email}")
+    public ResponseEntity<Boolean> checkEmailExists(
+            @PathVariable String email,
+            @RequestHeader(required = true) String serverlessSignature) {
+        try {
+            if (!isValidServerlessRequest(serverlessSignature)) {
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            }
+            boolean exists = userService.existsByEmail(email);
+            return new ResponseEntity<>(exists, exists ? HttpStatus.OK : HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            System.err.println("Error verificando email: " + e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

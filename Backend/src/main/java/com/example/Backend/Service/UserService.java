@@ -4,12 +4,12 @@ import java.util.List;
 
 import org.springframework.http.HttpHeaders;
 
+import com.example.Backend.DTO.AlertDTO;
 import com.example.Backend.DTO.JwtResponseDto;
 import com.example.Backend.DTO.LoginDto;
 import com.example.Backend.DTO.RegisterDto;
-import com.example.Backend.DTO.UserDTO;
-import com.example.Backend.DTO.AlertDTO;
 import com.example.Backend.DTO.UserConfirmationDTO;
+import com.example.Backend.DTO.UserDTO;
 
 public interface  UserService {
     
@@ -60,4 +60,18 @@ public interface  UserService {
 
     //enviar mensaje de confirmación al trigger
     void sendConfirmationMessage(UserConfirmationDTO confirmationDTO);
+
+    /**
+     * Verifica si un nombre de usuario ya existe en la base de datos
+     * @param username Nombre de usuario a verificar
+     * @return true si el usuario existe, false en caso contrario
+     */
+    boolean existsByUsername(String username);
+
+    /**
+     * Verifica si un correo electrónico ya existe en la base de datos
+     * @param email Correo electrónico a verificar
+     * @return true si el email existe, false en caso contrario
+     */
+    boolean existsByEmail(String email);
 }
