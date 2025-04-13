@@ -67,6 +67,8 @@ public class SecurityConfig implements WebMvcConfigurer{
                 .requestMatchers("/api/update/client").hasAnyAuthority("USER", "ADMIN")
                 .requestMatchers("/api/update/employee").hasAnyAuthority("EMPLOYEE", "ADMIN")
                 .requestMatchers("/api/alerts/**").hasAuthority("ADMIN")
+                // Rutas de eliminación de usuarios - solo ADMIN
+                .requestMatchers("/api/users/client/**", "/api/users/employee/**").hasAuthority("ADMIN")
                 // Configuración para los endpoints de roles - solo ADMIN
                 .requestMatchers("/api/roles/**").hasAuthority("ADMIN")
                 .anyRequest().authenticated()
