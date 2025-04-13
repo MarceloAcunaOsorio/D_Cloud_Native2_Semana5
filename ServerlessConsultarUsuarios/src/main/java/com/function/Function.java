@@ -4,16 +4,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.functions.ExecutionContext;
 import com.microsoft.azure.functions.HttpMethod;
@@ -66,7 +58,6 @@ public class Function {
         
         try {
             // Genera firma de autenticación para el backend
-            String signature = generateSignature();
             
             // Construye la consulta GraphQL
             String graphqlQuery = "{ \"query\": \"{ users { id username email roles { name } } }\" }";
@@ -75,7 +66,6 @@ public class Function {
             HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(BACKEND_URL + "/api/users"))
                 .header("Content-Type", "application/json")
-                .header("serverlessSignature", signature)
                 .GET()
                 .build();
 
@@ -84,11 +74,10 @@ public class Function {
 
             // Procesa la respuesta según el código de estado
             if (response.statusCode() == 200) {
-                // Convierte la respuesta a formato GraphQL
-                String graphqlResponse = convertToGraphQLResponse(response.body());
+                // Retorna directamente la respuesta del backend
                 return request.createResponseBuilder(HttpStatus.OK)
                     .header("Content-Type", "application/json")
-                    .body(graphqlResponse)
+                    .body(response.body())
                     .build();
             } else {
                 return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -105,43 +94,5 @@ public class Function {
         }
     }
 
-    /**
-     * Genera una firma HMAC para autenticar la petición
-     * @return Firma en formato timestamp:hash
-     */
-    private String generateSignature() {
-        try {
-            // Genera timestamp actual
-            long timestamp = Instant.now().getEpochSecond();
-            String data = timestamp + ":" + BACKEND_URL;
-            
-            // Crea y configura HMAC-SHA256
-            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secret_key = new SecretKeySpec(SERVERLESS_SECRET_KEY.getBytes(), "HmacSHA256");
-            sha256_HMAC.init(secret_key);
-            
-            // Genera y codifica el hash
-            String hash = Base64.getEncoder().encodeToString(sha256_HMAC.doFinal(data.getBytes()));
-            return timestamp + ":" + hash;
-        } catch (Exception e) {
-            throw new RuntimeException("Error generando firma: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Convierte la respuesta JSON del backend a formato GraphQL
-     * @param jsonResponse Respuesta JSON del backend
-     * @return Respuesta en formato GraphQL
-     */
-    private String convertToGraphQLResponse(String jsonResponse) {
-        try {
-            // Parsea la respuesta y la estructura en formato GraphQL
-            JsonNode users = objectMapper.readTree(jsonResponse);
-            Map<String, Object> response = new HashMap<>();
-            response.put("data", Map.of("users", users));
-            return objectMapper.writeValueAsString(response);
-        } catch (Exception e) {
-            throw new RuntimeException("Error convirtiendo respuesta: " + e.getMessage());
-        }
-    }
+   
 }
