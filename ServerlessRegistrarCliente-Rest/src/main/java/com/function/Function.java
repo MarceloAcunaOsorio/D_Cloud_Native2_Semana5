@@ -26,9 +26,12 @@ import com.microsoft.azure.functions.annotation.HttpTrigger;
  * Azure Function para procesar el registro de clientes.
  * Recibe datos de registro, valida y envía al backend con autenticación.
  */
-public class Function {
 
-    // Componentes para comunicación HTTP y procesamiento JSON
+/**
+ * Azure Functions with HTTP Trigger.
+ */
+public class Function {
+     // Componentes para comunicación HTTP y procesamiento JSON
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String backendUrl;

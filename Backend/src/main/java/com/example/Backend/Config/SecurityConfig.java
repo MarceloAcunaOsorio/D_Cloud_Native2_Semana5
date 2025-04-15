@@ -91,7 +91,7 @@ public class SecurityConfig implements WebMvcConfigurer{
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOrigin("http://localhost:4200"); // Origen del FrontEnd
+        configuration.addAllowedOrigin("*"); // Origen del FrontEnd
         configuration.addAllowedMethod("*"); // Permitir todos los métodos (GET, POST, PUT, DELETE)
         configuration.addAllowedHeader("*"); // Permitir todos los encabezados
         configuration.setAllowCredentials(true); // Permitir credenciales

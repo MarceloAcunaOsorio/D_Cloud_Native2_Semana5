@@ -8,7 +8,7 @@
 			"problemMatcher": "$func-java-watch",
 			"isBackground": true,
 			"options": {
-				"cwd": "${workspaceFolder}/target/azure-functions/ServerlessRegistrarCliente-1744512933667"
+				"cwd": "${workspaceFolder}/target/azure-functions/ServerlessRegistrarCliente-Rest-1744676959548"
 			},
 			"dependsOn": "package (functions)"
 		},
